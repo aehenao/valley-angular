@@ -9,36 +9,70 @@ import { Component, ElementRef, ViewChild } from '@angular/core';
 export class AppComponent {
   private apiURL = 'http://127.0.0.1:8000/api';
   title = 'blog-fronted';
-  @ViewChild('title', { static: true })
-  titleElement!: ElementRef;
-  @ViewChild('description', { static: true })
-  descriptionElement!: ElementRef;
-  loading: boolean = false;
+  loading: boolean;
+  posts: Array<any>;
+  titleForm: string;
+  descriptionForm: string;
 
-  constructor() {}
+  constructor() {
+    this.loading = false
+    this.posts = []
+    this.titleForm = ''
+    this.descriptionForm = ''
+  }
 
-  async createPost() {
-    this.loading = true
+  ngOnInit() {
+    this.getPosts()
+  }
+
+  activeLoading(active: boolean){
+    this.loading = active
+  }
+
+  async getPosts() {
     try {
-      const response = await fetch(this.apiURL + '/post/create', {
-        mode: 'cors',
-        method: 'POST',
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          title: this.titleElement.nativeElement.value,
-          description: this.descriptionElement.nativeElement.value
-        })
-      })
-      const resp = await response.json()
-      console.log(resp)
-      this.loading = false 
+      this.loading = true
+      this.posts = []
+      const response = await fetch(this.apiURL + '/post/all')
+      const { status, data } = await response.json()
+      if (status === 200) this.posts.push(...data)
+      this.loading = false
     } catch (error) {
-      this.loading = false 
-      
+      this.loading = false
     }
   }
-  
+
+  async createPost() {
+    try {
+      if(this.titleForm.length === 0 || this.descriptionForm.length === 0){
+        alert('Los campos Titulo y Descripción son obligatorios.')
+        return
+      }
+      this.loading = true
+      const formdata = new FormData();
+      formdata.append("title", this.titleForm);
+      formdata.append("description", this.descriptionForm);
+      formdata.append("user_id", "1");
+
+      const requestOptions: any = {
+        method: 'POST',
+        body: formdata,
+        redirect: 'follow'
+      };
+
+      const response = await fetch(this.apiURL + "/post/create", requestOptions)
+      const { status, data } = await response.json()
+      if(status === 201) {
+        this.titleForm = ''
+        this.descriptionForm = ''
+        this.posts.push(data)
+      }
+      this.loading = false
+    } catch (error) {
+      this.loading = false
+
+    }
+  }
+
 
 }
